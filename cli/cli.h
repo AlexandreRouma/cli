@@ -24,6 +24,7 @@ namespace cli {
          * Create a Value object from a common type.
          * @param value Value to create the object from.
         */
+        Value(const char* value);
         Value(const std::string& value);
         Value(uint8_t value);
         Value(uint16_t value);
@@ -71,9 +72,10 @@ namespace cli {
         operator bool() const;
 
         // Type of the value
-        const ValueType type;
+        const ValueType& type = _type;
 
     private:
+        ValueType _type;
         std::string string;
         uint64_t uinteger;
         int64_t sinteger;
@@ -167,8 +169,8 @@ namespace cli {
         operator const std::string&() const;
 
         // Equality operators
-        bool operator==(const std::string& b);
-        bool operator==(const char* b);
+        bool operator==(const std::string& b) const;
+        bool operator==(const char* b) const;
 
         const Value& operator[](const std::string& arg) const;
 

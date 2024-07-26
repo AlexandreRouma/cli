@@ -10,3 +10,5 @@ add_executable(${PROJECT_NAME} ${SRC})
 # Specify that the C++ version to use for the executable is C++20
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_20)
 target_include_directories(${PROJECT_NAME} PRIVATE "cli/")
+
+target_compile_options(${PROJECT_NAME} PRIVATE /Od)

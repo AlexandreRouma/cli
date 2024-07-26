@@ -4,45 +4,87 @@
 #include <format>
 
 namespace cli {
-    Value::Value() : type(VAL_TYPE_INVALID) {}
+    const std::vector<std::string> trueStrings = { "TRUE", "Y", "YES", "ON", "1" };
+    const std::vector<std::string> falseStrings = { "FALSE", "N", "NO", "OFF", "0" };
 
-    Value::Value(const std::string& value) : type(VAL_TYPE_STRING) { string = value; }
-    Value::Value(uint8_t value) : type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
-    Value::Value(uint16_t value) : type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
-    Value::Value(uint32_t value) : type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
-    Value::Value(uint64_t value) : type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
-    Value::Value(int8_t value) : type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
-    Value::Value(int16_t value) : type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
-    Value::Value(int32_t value) : type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
-    Value::Value(int64_t value) : type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
-    Value::Value(float value) : type(VAL_TYPE_FLOATING) { floating = value; }
-    Value::Value(double value) : type(VAL_TYPE_FLOATING) { floating = value;; }
-    Value::Value(bool value) : type(VAL_TYPE_BOOLEAN) { boolean = value; }
+    Value::Value() : _type(VAL_TYPE_INVALID) {}
 
-    Value::Value(ValueType type, const std::string& str) : type(type) {
+    Value::Value(const char* value) : _type(VAL_TYPE_STRING) { string = value; }
+    Value::Value(const std::string& value) : _type(VAL_TYPE_STRING) { string = value; }
+    Value::Value(uint8_t value) : _type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
+    Value::Value(uint16_t value) : _type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
+    Value::Value(uint32_t value) : _type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
+    Value::Value(uint64_t value) : _type(VAL_TYPE_UNSIGNED_INTEGER) { uinteger = value; }
+    Value::Value(int8_t value) : _type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
+    Value::Value(int16_t value) : _type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
+    Value::Value(int32_t value) : _type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
+    Value::Value(int64_t value) : _type(VAL_TYPE_SIGNED_INTEGER) { sinteger = value; }
+    Value::Value(float value) : _type(VAL_TYPE_FLOATING) { floating = value; }
+    Value::Value(double value) : _type(VAL_TYPE_FLOATING) { floating = value;; }
+    Value::Value(bool value) : _type(VAL_TYPE_BOOLEAN) { boolean = value; }
+
+    Value::Value(ValueType type, const std::string& str) : _type(type) {
+        std::string upperStr;
+
         switch (type) {
         case VAL_TYPE_STRING:
             // Copy the string directly
             string = str;
             return;
         case VAL_TYPE_UNSIGNED_INTEGER:
+            // Parse signed integer or throw error
+            try {
+                uinteger = std::stoull(str);
+            }
+            catch (const std::exception& e) {
+                throw std::runtime_error(std::format("Expected an unsigned integer value, got '{}'", str));
+            }
+            return;
         case VAL_TYPE_SIGNED_INTEGER:
-            // TODO: Parse interger through different radix and check for sign
+            // Parse signed integer or throw error
+            try {
+                sinteger = std::stoll(str);
+            }
+            catch (const std::exception& e) {
+                throw std::runtime_error(std::format("Expected a signed integer value, got '{}'", str));
+            }
             return;
         case VAL_TYPE_FLOATING:
-            // TODO: Parse float
+            // Parse float or throw error
+            try {
+                floating = std::stod(str);
+            }
+            catch (const std::exception& e) {
+                throw std::runtime_error(std::format("Expected a floating point value, got '{}'", str));
+            }
             return;
         case VAL_TYPE_BOOLEAN:
-            // TODO: Parse boolean
+            // Convert to upper case
+            for (char c : str) { upperStr += std::toupper(c); }
+
+            // Check for a true value
+            if (std::find(trueStrings.begin(), trueStrings.end(), upperStr) != trueStrings.end()) {
+                boolean = true;
+                return;
+            }
+
+            // Check for false strings
+            if (std::find(falseStrings.begin(), falseStrings.end(), upperStr) != falseStrings.end()) {
+                boolean = false;
+                return;
+            }
+
+            // Invalid, throw error
+            throw std::runtime_error(std::format("Expected a boolean value, got '{}'", str));
             return;
         default:
             throw std::runtime_error("Unsupported type");
         }
     }
 
-    Value::Value(const Value& b) : type(b.type) {
+    Value::Value(const Value& b) : _type(b._type) {
         // Copy the member of the designated type
-        switch (b.type) {
+        switch (_type) {
         case VAL_TYPE_STRING:
             string = b.string; break;
         case VAL_TYPE_UNSIGNED_INTEGER:
@@ -58,9 +100,9 @@ namespace cli {
         }
     }
 
-    Value::Value(Value&& b) : type(b.type) {
+    Value::Value(Value&& b) : _type(b._type) {
         // Move the member of the designated type
-        switch (b.type) {
+        switch (_type) {
         case VAL_TYPE_STRING:
             string = std::move(b.string); break;
         case VAL_TYPE_UNSIGNED_INTEGER:
@@ -77,8 +119,11 @@ namespace cli {
     }
 
     Value& Value::operator=(const Value& b) {
+        // Update the type
+        _type = b._type;
+
         // Copy the member of the designated type
-        switch (b.type) {
+        switch (_type) {
         case VAL_TYPE_STRING:
             string = b.string; break;
         case VAL_TYPE_UNSIGNED_INTEGER:
@@ -98,8 +143,11 @@ namespace cli {
     }
 
     Value& Value::operator=(Value&& b) {
+        // Update the type
+        _type = b._type;
+
         // Move the member of the designated type
-        switch (b.type) {
+        switch (_type) {
         case VAL_TYPE_STRING:
             string = std::move(b.string); break;
         case VAL_TYPE_UNSIGNED_INTEGER:
@@ -119,62 +167,62 @@ namespace cli {
     }
 
     Value::operator const std::string&() const {
-        if (type != VAL_TYPE_STRING) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_STRING) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return string;
     }
 
     Value::operator uint8_t() const {
-        if (type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (uint8_t)uinteger;
     }
 
     Value::operator uint16_t() const {
-        if (type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (uint16_t)uinteger;
     }
 
     Value::operator uint32_t() const {
-        if (type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (uint32_t)uinteger;
     }
 
     Value::operator uint64_t() const {
-        if (type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_UNSIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return uinteger;
     }
 
     Value::operator int8_t() const {
-        if (type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (int8_t)sinteger;
     }
 
     Value::operator int16_t() const {
-        if (type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (int16_t)sinteger;
     }
 
     Value::operator int32_t() const {
-        if (type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (int32_t)sinteger;
     }
 
     Value::operator int64_t() const {
-        if (type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_SIGNED_INTEGER) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return sinteger;
     }
 
     Value::operator float() const {
-        if (type != VAL_TYPE_FLOATING) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_FLOATING) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return (float)floating;
     }
 
     Value::operator double() const {
-        if (type != VAL_TYPE_FLOATING) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_FLOATING) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return floating;
     }
 
     Value::operator bool() const {
-        if (type != VAL_TYPE_BOOLEAN) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
+        if (_type != VAL_TYPE_BOOLEAN) { throw std::runtime_error("Cannot cast value due to type mismatch"); }
         return boolean;
     }
 
@@ -277,22 +325,28 @@ namespace cli {
     }
 
     Command& Command::operator=(const Command& b) {
-        // Copy all members
-        subcommand = b.subcommand;
-        command = b.command;
-        arguments = b.arguments;
-        values = b.values;
+        // Copy b since it could be allocated by this->subcommand
+        Command bcpy = b;
+
+        // Move all members from the copy to self
+        subcommand = std::move(bcpy.subcommand);
+        command = std::move(bcpy.command);
+        arguments = std::move(bcpy.arguments);
+        values = std::move(bcpy.values);
 
         // Return self
         return *this;
     }
 
     Command& Command::operator=(Command&& b) {
-        // Move all members
-        subcommand = std::move(b.subcommand);
-        command = std::move(b.command);
-        arguments = std::move(b.arguments);
-        values = std::move(b.values);
+        // Move b since it could be allocated by this->subcommand
+        Command bcpy = std::move(b);
+
+        // Move all members from the copy to self
+        subcommand = std::move(bcpy.subcommand);
+        command = std::move(bcpy.command);
+        arguments = std::move(bcpy.arguments);
+        values = std::move(bcpy.values);
 
         // Return self
         return *this;
@@ -302,11 +356,11 @@ namespace cli {
         return command;
     }
 
-    bool Command::operator==(const std::string& b) {
+    bool Command::operator==(const std::string& b) const {
         return (command == b);
     }
 
-    bool Command::operator==(const char* b) {
+    bool Command::operator==(const char* b) const {
         return !strcmp(command.c_str(), b);
     }
 
@@ -315,10 +369,39 @@ namespace cli {
         return arguments.at(arg);
     }
 
+    bool isValidBoolean(const std::string& str) {
+        // Convert to upper case
+        std::string upperStr;
+        for (char c : str) { upperStr += std::toupper(c); }
+        return std::find(trueStrings.begin(), trueStrings.end(), upperStr) != trueStrings.end() ||
+                std::find(falseStrings.begin(), falseStrings.end(), upperStr) != falseStrings.end();
+    }
+
+    void parseArgument(Command& cmd, std::string& argName, ValueType type, int& argc, char**& argv) {
+        // If the argument is a boolean
+        if (type == VAL_TYPE_BOOLEAN) {
+            // If no value follows it's not a valid boolean
+            printf("'%s'\n", *argv);
+            if (!argc || !isValidBoolean(*argv)) {
+                // Assume the value is true
+                cmd.arguments[argName] = true;
+                return;
+            }
+        }
+
+        // Expect a value
+        if (!argc) { throw std::runtime_error("Expected a value"); }
+
+        // Pop the value
+        std::string value = *(argv++); argc--;
+
+        // Parse and set the value
+        cmd.arguments[argName] = Value(type, value);
+    }
+
     Command parse(const Interface& interface, int argc, char** argv) {
         // Pop the command name
-        std::string cmdName = *(argv++);
-        argc--;
+        std::string cmdName = *(argv++); argc--;
 
         // Initialize the command
         Command cmd(cmdName, interface);
@@ -326,8 +409,7 @@ namespace cli {
         // Process until no arguments are left
         while (argc) {
             // Pop the argument
-            std::string arg = *(argv++);
-            argc--;
+            std::string arg = *(argv++); argc--;
 
             // If the argument gives a long name
             if (arg.starts_with("--")) {
@@ -338,9 +420,8 @@ namespace cli {
                     throw std::runtime_error(std::format("Unknown argument: '{}'", argName));
                 }
 
-                // TODO: Quite complex depending on what comes after it and the type
-
-                // Parse the 
+                // Parse the argument
+                parseArgument(cmd, argName, it->second.defValue.type, argc, argv);
                 continue;
             }
 
@@ -357,7 +438,25 @@ namespace cli {
                         throw std::runtime_error(std::format("Unknown argument: '{}'", c));
                     }
 
-                    // TODO: Quite complex depending on what comes after it and the type
+                    // Fetch the argument descriptor
+                    std::string argName = it->second;
+                    const auto& desc = interface.arguments.at(argName);
+
+                    // If the argument is not at the end of the compound argument
+                    if (i < arg.size()-1) {
+                        // if the argument is a boolean
+                        if (desc.defValue.type == VAL_TYPE_BOOLEAN) {
+                            // Assume the value is true
+                            cmd.arguments[argName] = true;
+                            continue;
+                        }
+
+                        // Non-boolean arguments are not allowed before the end of the compound argument
+                        throw std::runtime_error(std::format("Non boolean argument '{}' can only be at the end of a compound argument", c));
+                    }
+
+                    // Parse the argument
+                    parseArgument(cmd, argName, desc.defValue.type, argc, argv);
                 }
                 continue;
             }
@@ -376,7 +475,7 @@ namespace cli {
             }
 
             // Just append the argument to the value list
-            cmd.values.push_back(cmd);
+            cmd.values.push_back(arg);
         }
 
         // Return the newly parsed command

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "cli.h"
+#include <inttypes.h>
 
 int main(int argc, char** argv) {
     // Define command line interface
@@ -30,24 +31,33 @@ int main(int argc, char** argv) {
     // Dump the result
     while (true) {
         printf("=== %s ===\n", cmd.command.c_str());
-        printf("Values: ");
+        printf("Values:");
         for (const auto& val : cmd.values) {
-            printf("'%s' ", val.c_str());
+            printf(" '%s'", val.c_str());
+        }
+        printf("\n\nArguments:\n");
+        for (const auto& [name, val] : cmd.arguments) {
+            switch (val.type) {
+            case cli::VAL_TYPE_STRING:
+                printf("'%s': %s\n", name.c_str(), ((std::string)val).c_str()); break;
+            case cli::VAL_TYPE_UNSIGNED_INTEGER:
+                printf("'%s': %" PRIu64 "\n", name.c_str(), (uint64_t)val); break;
+            case cli::VAL_TYPE_SIGNED_INTEGER:
+                printf("'%s': %" PRId64 "\n", name.c_str(), (int64_t)val); break;
+            case cli::VAL_TYPE_FLOATING:
+                printf("'%s': %lf\n", name.c_str(), (double)val); break;
+            case cli::VAL_TYPE_BOOLEAN:
+                printf("'%s': %s\n", name.c_str(), val ? "True" : "False"); break;
+            default:
+                printf("Uknown type: %d\n", val.type); break;
+            }
         }
         printf("\n");
         
         // If there's no subcommand, stop
         if (!cmd.subcommand) { break; }
 
-        cli::Command cmd;
-        // Works
-        auto test = *cmd.subcommand;
-        cmd = test;
-        // Crashes
         cmd = *cmd.subcommand;
-
-        printf("%s\n", test.command.c_str());
-        //cmd = *cmd.subcommand;
     }
 
     return 0;
